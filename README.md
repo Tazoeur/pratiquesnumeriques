@@ -375,6 +375,39 @@ if(count($params) > 0) {
 }
 ```
 
+Ce bout de code va demander la création de la méthode statique `create` dans la classe `Person`
+
+```php
+public static function create(array $parameters) {
+    foreach(['firstname', 'lastname', 'email'] as $key) {
+        if(!in_array($key, array_keys($parameters))) {
+            throw new Exception("User cannot be created : $key missing");
+        }
+    }
+
+    return DB::insert(self::$table, $parameters);
+}
+```
+
+Qui va nous demander d'implémenter une méthode statique `insert` dans la classe `DB`.
+
+```php
+public static function insert(string $table, array $attributes) {
+    $cursor_attributes = [];
+    foreach($attributes as $key => $value) {
+        $cursor_attributes[':' . $key] = $value;
+    }
+
+    $sql = "INSERT INTO {$table} (" . implode(', ', array_keys($attributes)) . ") VALUES (" . implode(', ', array_keys($cursor_attributes)) . ')';
+    $query = self::get_instance()->connexion->prepare($sql);
+    if($query->execute($attributes)) {
+        return (int)self::get_instance()->connexion->lastInsertId();
+    } else {
+        return false;
+    }
+}
+```
+
 Et voila, la création de personne fonctionne maintenant.
 On peut retourner sur la page qui les liste pour vérifier que les personnes se sont bien ajoutées.
 
@@ -403,6 +436,55 @@ n'ont tout simplement pas encore été créés.
 
 Nous pouvons tout de suite gérer la mise à jour. Nous allons réutiliser le formulaire de création pour lequel nous allons 
 préremplir les champs en fonction des valeurs de la personne qui correspond à l'id passsé en paramètre de l'url.
+
+Une fonction `update` va être créée dans la classe `Person`
+```php
+public function update(array $parameters) {
+    unset($parameters['id']);
+    foreach($parameters as $key => $value) {
+        if(!property_exists(self::class, $key)) {
+            unset($parameters[$key]);
+        }
+    }
+    if(count($parameters) == 0) {
+        return true;
+    }
+
+    $result = DB::update(self::$table, $parameters, ['id' => $this->id]);
+
+    foreach($parameters as $key => $value) {
+        $this->$key = $value;
+    }
+
+    return $result;
+}
+```
+
+et la fonction `update` de la classe `DB` va aussi être créée
+```php
+public static function update(string $table, array $attributes, array $where) {
+    if(count($attributes) === 0) {
+        throw new Exception("Nothing to update");
+    }
+
+    $update = [];
+    foreach($attributes as $key => $value) {
+        $update[] = "$key = :{$key}";
+    }
+    $update_sql = implode(', ', $update);
+
+    $where_sql = '';
+    foreach($where as $key => $value) {
+        $where_sql .= " AND {$key} = :{$key}";
+    }
+
+    $params = $attributes + $where;
+    $sql = "UPDATE {$table} SET {$update_sql} WHERE 1=1 $where_sql";
+
+    $query = self::get_instance()->connexion->prepare($sql);
+    return $query->execute($params);
+}
+```
 
 Une fois que cela est fait, il suffit d'implémenter la suppression.
 
@@ -444,4 +526,35 @@ if(isset($_GET['id'])) {
 </html>
 ```
 
+qui crée une fonction `delete` dans la classe `Person`
+
+```php
+public function delete() {
+    return DB::delete(self::$table, ['id' => $this->id]);
+}
+```
+
+et la fonction `delete` de la classe `DB`
+
+```php
+public static function delete(string $table, $where)  {
+    $where_sql = '';
+    foreach($where as $key => $value) {
+        $where_sql .= " AND {$key} = :{$key}";
+    }
+    $sql = "DELETE from {$table} WHERE 1=1 $where_sql";
+
+    $query = self::get_instance()->connexion->prepare($sql);
+    return $query->execute($where);
+}
+```
+
 Et voila, le crud pour les personnes est maintenant terminé
+
+
+Le vrai avantage d'avoir séparé les différentes actions sur différents fichiers (différentes classes) va se faire sentir
+maintenant que l'on veut créer la classe et les vues se rapportant au concept de livre.
+
+En effet toutes les fonctions qui gèrent les accès en base de données sont déjà écrites et bien que l'on ait seulement 1/3 
+de nos concepts qui soient fonctionnels, on a déjà fait beaucoup plus que la moitié du travail :D
+
