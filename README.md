@@ -104,6 +104,16 @@ Même s'il est possible de développer n'importe quoi avec n'importe quel édite
 Si vous ne savez pas quoi utiliser, dirigez vous vers [vscode](https://code.visualstudio.com/).
 Si vous êtes riche, achetez [PhpStorm](https://www.jetbrains.com/phpstorm/).
 
+##### 5. Vue sur les logs
+
+Vous allez écrire du mauvais code et créer des bugs. Ce n'est pas un mal en soi, bien au contraire.
+C'est tout à fait naturel de se tromper, c'est comme cela que l'on apprend.
+
+Par contre il va vous falloir comprendre d'où vient l'erreur, parce que les bugs jouent souvent à cache cache.
+Pour ce faire, la première ressource à votre disposition sont les logs apaches.
+
+> Les logs, __journaux__ en français, sont des fichiers textuels qui donnent des informations sur les problèmes rencontrés.
+
 ## En route vers le premier objectif
 
 Donc commençons par créer les tables nécessaires à notre projet.
